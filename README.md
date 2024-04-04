@@ -32,7 +32,7 @@ Baixe a *release* correta para seu sistema e arquitetura no link abaixo.
 Para instalar a CLI apartir do pacote deb, basta executar o comando abaixo em um terminal dentro do diretório onde está o pacote. Atualize o nome do arquivo .deb de acordo com aquele que você baixou.
 
 ```
-sudo dpkg -i mgc_x.xx.x_linux_amd64.deb
+sudo dpkg -i mgccli_x.xx.x_linux_amd64.deb
 ```
 
 #### **Fedora / CentOS**
@@ -40,7 +40,7 @@ sudo dpkg -i mgc_x.xx.x_linux_amd64.deb
 Para instalar a CLI apartir do pacote rpm, basta executar o comando abaixo no mesmo diretório onde está o pacote. Atualize o nome do arquivo .rpm de acordo com aquele que você baixou.
 
 ```
-sudo rpm -i mgc_x.xx.x_linux_amd64.rpm
+sudo rpm -i mgccli_x.xx.x_linux_amd64.rpm
 ```
 
 #### **Arquivo tar.gz**
@@ -54,7 +54,7 @@ mkdir ~/mgc_cli
 Execute o comando abaixo na mesma pasta onde está o arquivo .tar.gz. Atualize o nome do arquivo de acordo com aquele que você baixou.
 
 ```
-tar -xvf mgc_x.xx.x_linux_amd64.tar.gz -C ~/mgc_cli
+tar -xvf mgccli_x.xx.x_linux_amd64.tar.gz -C ~/mgc_cli
 ```
 
 Para melhor experiência com a CLI, recomendamos que o diretório de instalação seja adicionado na variável PATH. Rode o comando abaixo e depois adicione essa linha ao arquivo **~/.bashrc** ou **~/.zshrc** dependendo do seu shell.
@@ -72,13 +72,13 @@ Para instalar a CLI utilizar a ferramenta brew, você precisa ter certeza de que
 Depois abra um terminal e execute o comando tap no nosso repositório oficial:
 
 ```
-brew tap MagaluCloud/homebrew-mgc
+brew tap MagaluCloud/homebrew-mgccli
 ```
 
 e por final execute o comando de instalação:
 
 ```
-brew install mgc
+brew install mgccli
 ```
 
 #### **Arquivo tar.gz**
