@@ -27,6 +27,22 @@ Baixe a *release* correta para seu sistema e arquitetura no link abaixo.
 
 ### Linux
 
+#### **Arch Linux**
+
+A CLI está disponível no repositório de pacotes AUR no Arch Linux. Você pode instalá-lo utilizando uma ferramenta de gerenciamento de pacotes, como o `yay`, ou manualmente através do `makepkg`.
+
+```
+yay -S mgccli-bin
+```
+
+ou
+
+```
+git clone https://aur.archlinux.org/mgccli-bin.git
+cd mgccli-bin
+makepkg -si
+```
+
 #### **Debian / Ubuntu**
 
 Para instalar a CLI apartir do pacote deb, basta executar o comando abaixo em um terminal dentro do diretório onde está o pacote. Atualize o nome do arquivo .deb de acordo com aquele que você baixou.
