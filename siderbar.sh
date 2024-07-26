@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Function to generate the sidebar content
-rm ./docs/_Sidebar.md
 generate_sidebar() {
   local dir="$1"
   local indent="$2"
@@ -15,9 +14,9 @@ generate_sidebar() {
       # If it's a file, add it to the sidebar
       local filename=$(basename "$entry" .md)
       local title=$(head -n 1 "$entry" | sed 's/^# *//;s/ *$//')
-      local relative_path=$(realpath --relative-to="." "$entry")
-      local link=$(echo "$relative_path" | sed 's/ /%20/g')
-      echo "${indent}* [${title}](./${link})" >> _Sidebar.md
+      local relative_path=$(realpath --relative-to="docs" "$entry")
+      local link=$(echo "$relative_path" | sed 's/ /-/g; s/%20/-/g; s/\.md$//; s/\//-/g')
+      echo "${indent}* [${title}](https://github.com/MagaluCloud/mgccli/wiki/${link})" >> _Sidebar.md
     fi
   done
 }
