@@ -25,6 +25,12 @@ Baixe a *release* correta para seu sistema e arquitetura no link abaixo.
 
 [Releases](https://github.com/MagaluCloud/mgccli/releases/)
 
+Download e instalação via script. suporte Linux, FreeBSD, NetBSD, OpenBSD, Darwin: 
+
+```
+sudo -v ; curl https://raw.githubusercontent.com/MagaluCloud/mgccli/main/install.sh | sudo bash
+```
+
 ### Linux
 
 #### **Debian / Ubuntu**
