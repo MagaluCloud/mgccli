@@ -17,6 +17,15 @@ function check_dependences() {
     exit 1
     fi
 
+
+    TAR_RESULT=$(whereis tar|cut -d\: -f2)
+
+    if [ -z "$TAR_RESULT" ]; then
+    echo "o binário TAR não está instalado, satisfaça a dependencia antes de continuar"
+    echo "Ex: apt update && apt install curl tar gzip unzip -y"
+    exit 1
+    fi
+
     if [ $(whoami) != "root" ]; then
     echo "Usuário precisa ter permissão de root, use sudo ou vire root"
     exit 1
