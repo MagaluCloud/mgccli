@@ -162,3 +162,5 @@ update_gitbash
     fi
 
 fi
+
+rm -rf $DIR_DOWNLOAD
