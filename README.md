@@ -19,9 +19,20 @@ Para utilizar a CLI você precisa já ter criado uma conta na Magalu Cloud atrav
 
 Uma vez tendo criado a sua conta, basta seguir o procedimento de download e instalação para o seus sistema.
 
+
+
+
 ## Download e Instalação
 
 Baixe a *release* correta para seu sistema e arquitetura no link abaixo.
+
+### Linux
+
+#### **Script - Bash ou GitBash**
+
+```
+curl https://raw.githubusercontent.com/MagaluCloud/mgccli/utils/update_mgccli_latest.sh | sudo bash
+```
 
 [Releases](https://github.com/MagaluCloud/mgccli/releases/)
 
