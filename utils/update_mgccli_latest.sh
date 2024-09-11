@@ -181,7 +181,7 @@ if [ $GET_OS == $GITBASH_01 ] || [ $GET_OS == $GITBASH_02 ]; then
 update_gitbash
 
     if [ $? -eq 0 ]; then
-        echo "Para testar, use o comando: mgc.exe --help"
+        echo "Para testar, use o comando: mgc.exe --help  ou mgc.exe --version"
     else
         echo "Falha na instalação"
     fi
