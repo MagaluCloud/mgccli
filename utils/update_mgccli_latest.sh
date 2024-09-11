@@ -23,8 +23,18 @@ function check_dependences() {
     fi
 }
 
+function check_version(){
+
+    LATEST_VRESION=$(curl -s https://api.github.com/repos/MagaluCloud/mgccli/releases/latest|grep tag_name|cut -d\: -f2|cut -d\" -f2)
+    CURRTENT_VRESION=$(mgc --version|cut -d\  -f3)
+    if [ $LATEST_VRESION == $CURRTENT_VRESION ]; then
+    echo "Ultima versão já instalada"
+    exit 0
+    fi
+}
 
 
+check_version
 check_dependences
 
 #Definie OS
