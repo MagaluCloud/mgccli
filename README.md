@@ -13,6 +13,10 @@ Pela CLI você pode adminstrar
 
 A CLI também permite a criação de perfis para melhor separar suas configurações e *tenants*.
 
+## Como contribuir?
+
+Atualmente este repositório abriga apenas os builds/releases da CLI. O código-fonte se encontra em nosso [monorepo](https://github.com/MagaluCloud/magalu) e e contribuições de código devem ser feitas por lá. A migração do código para este repo está nos planos.
+
 ## Pré-Requisitos
 
 Para utilizar a CLI você precisa já ter criado uma conta na Magalu Cloud através do [Console Magalu Cloud](https://console.magalu.cloud).
