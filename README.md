@@ -67,6 +67,9 @@ Para melhor experiência com a CLI, recomendamos que o diretório de instalaçã
 export PATH=$HOME/mgc_cli:$PATH
 ```
 
+#### Pacotes da comunidade
+- Arch Linux - [AUR package](https://aur.archlinux.org/packages/mgccli) por [@hugopl](https://github.com/hugopl)
+
 ### MacOS
 
 #### **Homebrew**
