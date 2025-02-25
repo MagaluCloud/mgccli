@@ -70,30 +70,32 @@ jobs:
       - name: Download GitHub Release Assets
         run: |
           mkdir -p /tmp/debs/amd64 /tmp/debs/arm64
+          api_response=$(curl -s \
+              "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          RELEASE_TAG=$(echo "$api_response" | jq -r .tag_name)
+          assets_url=$(echo "$api_response" | jq -r .assets_url)
 
-          # Get the tag of the current release
-          RELEASE_TAG="${{ github.event.release.tag_name }}"
           echo "Processing release $RELEASE_TAG"
-
-          # Get list of assets from the release
-          assets_url="${{ github.event.release.assets_url }}"
+          echo "Assets URL: $assets_url"
 
           # Download amd64 .deb file
           amd64_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_amd64.deb")) | .browser_download_url')
           if [ -n "$amd64_asset" ]; then
             echo "Downloading AMD64 package: $amd64_asset"
-            wget -P /tmp/debs/amd64 $amd64_asset
+            curl -L -o "/tmp/debs/amd64/$(basename $amd64_asset)" "$amd64_asset"
           else
             echo "No AMD64 .deb package found in release"
+            exit 1
           fi
 
           # Download arm64 .deb file
           arm64_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_arm64.deb")) | .browser_download_url')
           if [ -n "$arm64_asset" ]; then
             echo "Downloading ARM64 package: $arm64_asset"
-            wget -P /tmp/debs/arm64 $arm64_asset
+            curl -L -o "/tmp/debs/arm64/$(basename $arm64_asset)" "$arm64_asset"
           else
             echo "No ARM64 .deb package found in release"
+            exit 1
           fi
 
           # Verify downloads
