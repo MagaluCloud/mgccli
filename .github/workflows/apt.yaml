@@ -134,12 +134,17 @@ jobs:
           # Set GPG_KEY_ID for later use
           echo "GPG_KEY_ID=$GPG_FINGERPRINT" >> $GITHUB_ENV
 
-          # Configure GPG to use the passphrase non-interactively
-          gpg-agent --daemon --allow-preset-passphrase
+          # Properly configure GPG agent
+          gpgconf --kill gpg-agent || true
+          gpg-connect-agent /bye
 
           # Test key signing to ensure functionality
           echo "Testing GPG signing capability..."
-          echo "test" | gpg --batch --yes --passphrase "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" --pinentry-mode loopback -o /dev/null -s
+          echo "test" | gpg --batch --yes --passphrase "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" --pinentry-mode loopback -s -o /dev/null 
+
+          # Verify the GPG agent is properly configured for aptly
+          echo "export GPG_TTY=$(tty)" >> ~/.bashrc
+          echo "export GPG_TTY=$(tty)" >> $GITHUB_ENV
 
       - name: Create and Update Aptly Repository
         run: |
