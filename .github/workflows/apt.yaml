@@ -134,9 +134,6 @@ jobs:
           # List imported keys for verification
           gpg --list-secret-keys
 
-          # Set GPG_KEY_ID for later use
-          echo "GPG_KEY_ID=$GPG_FINGERPRINT" >> $GITHUB_ENV
-
           # Properly configure GPG agent
           gpgconf --kill gpg-agent || true
           gpg-connect-agent /bye
@@ -177,16 +174,8 @@ jobs:
 
           if [ "$ALREADY_PUBLISHED" = "yes" ]; then
             echo "Repository already published, switching to new snapshot"
-            if [ -n "$GPG_KEY_ID" ]; then
-              aptly -config=$APTLY_CONFIG publish switch -batch=true -gpg-key="$GPG_KEY_ID" $DIST_NAME s3:my-s3: $SNAPSHOT_NAME
-            else
-              aptly -config=$APTLY_CONFIG publish switch -batch=true -skip-signing=true $DIST_NAME s3:my-s3: $SNAPSHOT_NAME
-            fi
+            aptly -config=$APTLY_CONFIG publish switch -batch=true -gpg-key="$GPG_FINGERPRINT" $DIST_NAME s3:my-s3: $SNAPSHOT_NAME
           else
             echo "First-time publishing repository"
-            if [ -n "$GPG_KEY_ID" ]; then
-              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -gpg-key="$GPG_KEY_ID" -architectures="amd64,arm64" $SNAPSHOT_NAME s3:my-s3:
-            else
-              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -skip-signing=true -architectures="amd64,arm64" $SNAPSHOT_NAME s3:my-s3:
-            fi
+            aptly -config=$APTLY_CONFIG publish snapshot -batch=true -gpg-key="$GPG_FINGERPRINT" -architectures="amd64,arm64" $SNAPSHOT_NAME s3:my-s3:
           fi
