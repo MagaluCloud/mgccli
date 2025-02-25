@@ -104,25 +104,42 @@ jobs:
           # Create .gnupg directory with appropriate permissions
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
-          
-          echo "${{ secrets.MAGALUBOT_GPG_PRIVATE_KEY }}" | gpg --import
-          echo "${{ secrets.MAGALUBOT_GPG_PUBLIC_KEY }}" | gpg --import
 
-          # Create GPG configuration to avoid password prompt
-          echo "use-agent" >> ~/.gnupg/gpg.conf
+          # Set stricter permissions on GPG home directory
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
           echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          
-          # Configure passphrase for batch signing
-          echo "RELOADAGENT" | gpg-connect-agent
-          echo "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" | DISPLAY='' gpg --batch --passphrase-fd 0 --pinentry-mode loopback -o /dev/null -s /dev/null
+          echo "batch" >> ~/.gnupg/gpg.conf
+          echo "no-tty" >> ~/.gnupg/gpg.conf
 
-          # Restart GPG agent
-          gpgconf --kill gpg-agent
-          gpg-agent --daemon
+          # Import public key first
+          echo "${{ secrets.MAGALUBOT_GPG_PUBLIC_KEY }}" | gpg --import --batch
+
+          # Import private key using temp file to avoid stdin issues
+          GPG_PRIV_KEY_FILE=$(mktemp)
+          echo "${{ secrets.MAGALUBOT_GPG_PRIVATE_KEY }}" > "$GPG_PRIV_KEY_FILE"
+          chmod 600 "$GPG_PRIV_KEY_FILE"
+
+          # Import private key with passphrase
+          cat "$GPG_PRIV_KEY_FILE" | gpg --batch --import --passphrase "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" 2>/dev/null
+
+          # Clean up temp file
+          rm -f "$GPG_PRIV_KEY_FILE"
+
+          # Set key to ultimately trusted
+          echo -e "5\ny\n" | gpg --command-fd 0 --batch --no-tty --edit-key "$GPG_FINGERPRINT" trust
+
+          # List imported keys for verification
+          gpg --list-secret-keys
 
           # Set GPG_KEY_ID for later use
           echo "GPG_KEY_ID=$GPG_FINGERPRINT" >> $GITHUB_ENV
+
+          # Configure GPG to use the passphrase non-interactively
+          gpg-agent --daemon --allow-preset-passphrase
+
+          # Test key signing to ensure functionality
+          echo "Testing GPG signing capability..."
+          echo "test" | gpg --batch --yes --passphrase "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" --pinentry-mode loopback -o /dev/null -s
 
       - name: Create and Update Aptly Repository
         run: |
