@@ -15,6 +15,7 @@ jobs:
       S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY_ID }}
       S3_SECRET_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
       S3_ENDPOINT: br-se1.magaluobjects.com
+      S3_REGION: us-east-1 # For S3-compatible storage, often a placeholder region like us-east-1 works
       APTLY_REPO_NAME: mgccli
       DIST_NAME: stable
       COMPONENT_NAME: main
@@ -48,12 +49,12 @@ jobs:
             "ppaCodename": "",
             "S3PublishEndpoints": {
               "my-s3": {
-                "region": "",
+                "region": "$S3_REGION",
                 "bucket": "$S3_BUCKET",
                 "awsAccessKeyID": "$S3_ACCESS_KEY",
                 "awsSecretAccessKey": "$S3_SECRET_KEY",
-                "endpoint": "https://$S3_ENDPOINT",
-                "prefix": "",
+                "endpoint": "$S3_ENDPOINT",
+                "s3ForcePathStyle": true,
                 "acl": "public-read",
                 "storageClass": "STANDARD",
                 "encryptionMethod": "",
@@ -182,8 +183,8 @@ jobs:
           else
             echo "First-time publishing repository"
             if [ -n "$GPG_KEY_ID" ]; then
-              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -gpg-key="$GPG_KEY_ID" $SNAPSHOT_NAME s3:my-s3:
+              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -gpg-key="$GPG_KEY_ID" -architectures="amd64,arm64" $SNAPSHOT_NAME s3:my-s3:
             else
-              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -skip-signing=true $SNAPSHOT_NAME s3:my-s3:
+              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -skip-signing=true -architectures="amd64,arm64" $SNAPSHOT_NAME s3:my-s3:
             fi
           fi
