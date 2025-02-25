@@ -1,0 +1,167 @@
+name: Aptly Publish to S3
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  aptly-publish:
+    runs-on: ubuntu-latest
+
+    env:
+      APTLY_CONFIG: /tmp/aptly.conf
+      S3_BUCKET: magalu-apt
+      S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY_ID }}
+      S3_SECRET_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+      S3_ENDPOINT: br-se1.magaluobjects.com
+      APTLY_REPO_NAME: mgccli
+      DIST_NAME: stable
+      COMPONENT_NAME: main
+      GPG_FINGERPRINT: ${{ secrets.MAGALUBOT_GPG_FINGERPRINT }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Aptly
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y aptly
+
+          # Create Aptly config
+          cat > $APTLY_CONFIG << EOF
+          {
+            "rootDir": "/tmp/aptly",
+            "downloadConcurrency": 4,
+            "downloadSpeedLimit": 0,
+            "architectures": ["amd64", "arm64"],
+            "dependencyFollowSuggests": false,
+            "dependencyFollowRecommends": false,
+            "dependencyFollowAllVariants": false,
+            "dependencyFollowSource": false,
+            "dependencyVerboseResolve": false,
+            "gpgDisableSign": false,
+            "gpgDisableVerify": false,
+            "downloadSourcePackages": false,
+            "ppaDistributorID": "ubuntu",
+            "ppaCodename": "",
+            "S3PublishEndpoints": {
+              "my-s3": {
+                "region": "",
+                "bucket": "$S3_BUCKET",
+                "awsAccessKeyID": "$S3_ACCESS_KEY",
+                "awsSecretAccessKey": "$S3_SECRET_KEY",
+                "endpoint": "https://$S3_ENDPOINT",
+                "prefix": "",
+                "acl": "public-read",
+                "storageClass": "STANDARD",
+                "encryptionMethod": "",
+                "plusWorkaround": false,
+                "disableMultiDel": false,
+                "forceSigV2": false,
+                "debug": true
+              }
+            }
+          }
+          EOF
+
+      - name: Download GitHub Release Assets
+        run: |
+          mkdir -p /tmp/debs/amd64 /tmp/debs/arm64
+
+          # Get the tag of the current release
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          echo "Processing release $RELEASE_TAG"
+
+          # Get list of assets from the release
+          assets_url="${{ github.event.release.assets_url }}"
+
+          # Download amd64 .deb file
+          amd64_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_amd64.deb")) | .browser_download_url')
+          if [ -n "$amd64_asset" ]; then
+            echo "Downloading AMD64 package: $amd64_asset"
+            wget -P /tmp/debs/amd64 $amd64_asset
+          else
+            echo "No AMD64 .deb package found in release"
+          fi
+
+          # Download arm64 .deb file
+          arm64_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_arm64.deb")) | .browser_download_url')
+          if [ -n "$arm64_asset" ]; then
+            echo "Downloading ARM64 package: $arm64_asset"
+            wget -P /tmp/debs/arm64 $arm64_asset
+          else
+            echo "No ARM64 .deb package found in release"
+          fi
+
+          # Verify downloads
+          echo "Downloaded packages:"
+          find /tmp/debs -name "*.deb" | sort
+
+      - name: Set up GPG
+        run: |
+          # Create .gnupg directory with appropriate permissions
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          
+          echo "${{ secrets.MAGALUBOT_GPG_PRIVATE_KEY }}" | gpg --import
+          echo "${{ secrets.MAGALUBOT_GPG_PUBLIC_KEY }}" | gpg --import
+
+          # Create GPG configuration to avoid password prompt
+          echo "use-agent" >> ~/.gnupg/gpg.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          
+          # Configure passphrase for batch signing
+          echo "RELOADAGENT" | gpg-connect-agent
+          echo "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" | DISPLAY='' gpg --batch --passphrase-fd 0 --pinentry-mode loopback -o /dev/null -s /dev/null
+
+          # Restart GPG agent
+          gpgconf --kill gpg-agent
+          gpg-agent --daemon
+
+          # Set GPG_KEY_ID for later use
+          echo "GPG_KEY_ID=$GPG_FINGERPRINT" >> $GITHUB_ENV
+
+      - name: Create and Update Aptly Repository
+        run: |
+          # Create repo if it doesn't exist
+          aptly -config=$APTLY_CONFIG repo list | grep -q "^$APTLY_REPO_NAME\$" || aptly -config=$APTLY_CONFIG repo create -component=$COMPONENT_NAME -distribution=$DIST_NAME $APTLY_REPO_NAME
+
+          # Add amd64 .deb files to repo
+          if [ -n "$(ls -A /tmp/debs/amd64)" ]; then
+            echo "Adding AMD64 packages to repository"
+            aptly -config=$APTLY_CONFIG repo add -force-replace $APTLY_REPO_NAME /tmp/debs/amd64/
+          fi
+
+          # Add arm64 .deb files to repo
+          if [ -n "$(ls -A /tmp/debs/arm64)" ]; then
+            echo "Adding ARM64 packages to repository"
+            aptly -config=$APTLY_CONFIG repo add -force-replace $APTLY_REPO_NAME /tmp/debs/arm64/
+          fi
+
+          # Create a snapshot with version tag
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          SNAPSHOT_NAME="${APTLY_REPO_NAME}-${RELEASE_TAG}"
+          echo "Creating snapshot: $SNAPSHOT_NAME"
+          aptly -config=$APTLY_CONFIG snapshot create $SNAPSHOT_NAME from repo $APTLY_REPO_NAME
+
+          # Check if already published
+          ALREADY_PUBLISHED=$(aptly -config=$APTLY_CONFIG publish list | grep -q "s3:my-s3:" && echo "yes" || echo "no")
+
+          if [ "$ALREADY_PUBLISHED" = "yes" ]; then
+            echo "Repository already published, switching to new snapshot"
+            if [ -n "$GPG_KEY_ID" ]; then
+              aptly -config=$APTLY_CONFIG publish switch -batch=true -gpg-key="$GPG_KEY_ID" $DIST_NAME s3:my-s3: $SNAPSHOT_NAME
+            else
+              aptly -config=$APTLY_CONFIG publish switch -batch=true -skip-signing=true $DIST_NAME s3:my-s3: $SNAPSHOT_NAME
+            fi
+          else
+            echo "First-time publishing repository"
+            if [ -n "$GPG_KEY_ID" ]; then
+              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -gpg-key="$GPG_KEY_ID" $SNAPSHOT_NAME s3:my-s3:
+            else
+              aptly -config=$APTLY_CONFIG publish snapshot -batch=true -skip-signing=true $SNAPSHOT_NAME s3:my-s3:
+            fi
+          fi

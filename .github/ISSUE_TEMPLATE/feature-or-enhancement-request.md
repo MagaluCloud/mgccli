@@ -3,7 +3,6 @@ name: Feature or enhancement request
 about: MGC CLI
 title: "[FEAT] - "
 labels: enhancement
-assignees: lfpicoloto1
 
 ---
 

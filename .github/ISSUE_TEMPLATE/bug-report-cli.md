@@ -3,7 +3,6 @@ name: Bug report CLI
 about: Create a report to help us improve
 title: "[BUG] - "
 labels: bug
-assignees: lfpicoloto1
 
 ---
 
