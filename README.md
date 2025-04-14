@@ -1,153 +1,178 @@
+![Go](https://img.shields.io/badge/Built%20with-Go-00ADD8?style=flat&logo=go) ![Latest Version](https://img.shields.io/github/v/release/MagaluCloud/mgccli) ![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)
+
 ## Magalu Cloud CLI
 
-O MGC CLI (Command Line Interface) é uma ferramenta que permite aos usuários interagirem com os serviços da Magalu Cloud (MGC) por meio de linha de comando. Ela está disponível para os sistema macOS, Linux e Windows nas arquiteturas AMD64 e ARM.
+MGC CLI (Command Line Interface) is a tool that allows users to interact with Magalu Cloud (MGC) services through the command line. It's available for macOS, Linux, and Windows on AMD64 and ARM architectures.
 
-Pela CLI você pode adminstrar
+With the CLI, you can manage:
 
-- Object Storage (buckets, objetos, ACL, versões, URL assinada)
-- Virtual Machines (instâncias, snapshots)
-- DBaaS (instâncias, replicações)
-- Block Storage (volumes, associações com VMs)
-- VPC (sub-redes, regras de segurança, IP público)
-- Cluster Kubernetes (criar, escalar, monitorar)
+- Object Storage (buckets, objects, ACL, versions, signed URL)
+- Virtual Machines (instances, snapshots)
+- DBaaS (instances, replications)
+- Block Storage (volumes, associations with VMs)
+- VPC (subnets, security rules, public IP)
+- Kubernetes Cluster (create, scale, monitor)
 
-A CLI também permite a criação de perfis para melhor separar suas configurações e *tenants*.
+The CLI also allows the creation of profiles to better separate your configurations and tenants.
 
-## Como contribuir?
+## How to contribute?
 
-Atualmente este repositório abriga apenas os builds/releases da CLI. O código-fonte se encontra em nosso [monorepo](https://github.com/MagaluCloud/magalu) e e contribuições de código devem ser feitas por lá. A migração do código para este repo está nos planos.
+Currently, this repository only hosts the CLI builds/releases. The source code is in our [monorepo](https://github.com/MagaluCloud/magalu), and code contributions should be made there. Moving the code to this repo is in our plans.
 
-## Pré-Requisitos
+If you'd like to report a bug or request a feature, please create an issue:
+- [Report a bug or request a feature](https://github.com/MagaluCloud/mgccli/issues/new/choose)
 
-Para utilizar a CLI você precisa já ter criado uma conta na Magalu Cloud através do [Console Magalu Cloud](https://console.magalu.cloud).
+## Prerequisites
 
-Uma vez tendo criado a sua conta, basta seguir o procedimento de download e instalação para o seus sistema.
+To use the CLI, you need to have already created an account on Magalu Cloud through the [Magalu Cloud Console](https://console.magalu.cloud).
 
-## Download e Instalação
+Once you have created your account, simply follow the download and installation procedure for your system.
 
-Baixe a *release* correta para seu sistema e arquitetura no link abaixo.
+## Download and Installation
+
+Download the correct release for your system and architecture from the link below.
 
 [Releases](https://github.com/MagaluCloud/mgccli/releases/)
 
 ### Linux
 
-#### **Debian / Ubuntu**
+#### **APT Repository (Debian/Ubuntu)**
 
-Para instalar a CLI apartir do pacote deb, basta executar o comando abaixo em um terminal dentro do diretório onde está o pacote. Atualize o nome do arquivo .deb de acordo com aquele que você baixou.
+Add the Magalu Cloud repository and install the CLI:
 
+```bash
+sudo gpg --yes --keyserver keyserver.ubuntu.com --recv-keys 0C59E21A5CB00594 && sudo gpg --export --armor 0C59E21A5CB00594 | sudo gpg --dearmor -o /etc/apt/keyrings/magalu-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/magalu-archive-keyring.gpg] https://packages.magalu.cloud/apt stable main" | sudo tee /etc/apt/sources.list.d/magalu.list
+
+sudo apt update
+sudo apt install mgccli
 ```
+
+#### **Debian / Ubuntu (Manual Installation)**
+
+To install the CLI from the deb package, run the command below in a terminal inside the directory where the package is located. Update the .deb filename according to the one you downloaded.
+
+```bash
 sudo dpkg -i mgccli_x.xx.x_linux_amd64.deb
 ```
 
 #### **Fedora / CentOS**
 
-Para instalar a CLI apartir do pacote rpm, basta executar o comando abaixo no mesmo diretório onde está o pacote. Atualize o nome do arquivo .rpm de acordo com aquele que você baixou.
+To install the CLI from the rpm package, run the command below in the same directory where the package is located. Update the .rpm filename according to the one you downloaded.
 
-```
+```bash
 sudo rpm -i mgccli_x.xx.x_linux_amd64.rpm
 ```
 
-#### **Arquivo tar.gz**
+#### **Tar.gz Archive**
 
-Abra um terminal e execute o seguinte comando para criar um diretório dedicado a CLI na sua home de usuário.
+Open a terminal and run the following command to create a directory dedicated to the CLI in your user's home directory.
 
-```
+```bash
 mkdir ~/mgc_cli
 ```
 
-Execute o comando abaixo na mesma pasta onde está o arquivo .tar.gz. Atualize o nome do arquivo de acordo com aquele que você baixou.
+Run the command below in the same folder where the .tar.gz file is located. Update the filename according to the one you downloaded.
 
-```
+```bash
 tar -xvf mgccli_x.xx.x_linux_amd64.tar.gz -C ~/mgc_cli
 ```
 
-Para melhor experiência com a CLI, recomendamos que o diretório de instalação seja adicionado na variável PATH. Rode o comando abaixo e depois adicione essa linha ao arquivo **~/.bashrc** ou **~/.zshrc** dependendo do seu shell.
+For a better experience with the CLI, we recommend adding the installation directory to the PATH variable. Run the command below and then add this line to the **~/.bashrc** or **~/.zshrc** file depending on your shell.
 
-```
+```bash
 export PATH=$HOME/mgc_cli:$PATH
 ```
 
-#### Pacotes da comunidade
-- Arch Linux - [AUR package](https://aur.archlinux.org/packages/mgccli) por [@hugopl](https://github.com/hugopl)
+#### **Community Packages**
+- Arch Linux - [AUR package](https://aur.archlinux.org/packages/mgccli) by [@hugopl](https://github.com/hugopl)
 
-### MacOS
+### macOS
 
 #### **Homebrew**
 
-Para instalar a CLI utilizar a ferramenta brew, você precisa ter certeza de que ela está corretamente instalada no seu sistema. Visite o site oficial: [https://brew.sh/](https://brew.sh/)
+To install the CLI using Homebrew, you need to make sure it's correctly installed on your system. Visit the official website: [https://brew.sh/](https://brew.sh/)
 
-Depois abra um terminal e execute o comando tap no nosso repositório oficial:
+Then open a terminal and run the tap command on our official repository:
 
-```
+```bash
 brew tap MagaluCloud/homebrew-mgccli
 ```
 
-e por final execute o comando de instalação:
+and finally run the installation command:
 
-```
+```bash
 brew install mgccli
 ```
 
-#### **Arquivo tar.gz**
+#### **Tar.gz Archive**
 
-A CLI possui arquivos de instalação separados para cada arquitetura. Baixe o arquivo correspondente a sua arquitetura no repositório oficial.
+The CLI has separate installation files for each architecture. Download the file corresponding to your architecture from the official repository.
 
 [https://github.com/MagaluCloud/mgccli/releases/](https://github.com/MagaluCloud/mgccli/releases/)
 
-Tenha certeza de que seu usuário possui permissão sudo.
+Make sure your user has sudo permission.
 
-Abra um terminal e execute o seguinte comando para criar um diretório dedicado a CLI na sua home de usuário.
+Open a terminal and run the following command to create a directory dedicated to the CLI in your user's home directory.
 
-```
+```bash
 mkdir ~/mgc_cli
 ```
 
-Execute o comando abaixo no mesmo diretório onde está o arquivo .tar.gz. Atualize o nome do arquivo de acordo com aquele que você baixou.
+Run the command below in the same directory where the .tar.gz file is located. Update the filename according to the one you downloaded.
 
-```
-tar -xvf mgc_0.18.3_linux_amd64.tar.gz -C ~/mgc_cli
+```bash
+tar -xvf mgccli_x.xx.x_darwin_amd64.tar.gz -C ~/mgc_cli
 ```
 
-Para melhor experiência com a CLI, recomendamos que o diretório de instalação seja adicionado na variável PATH. Rode o comando abaixo e depois adicione essa linha ao arquivo **~/.bashrc** ou **~/.zshrc** dependendo do seu shell.
+For a better experience with the CLI, we recommend adding the installation directory to the PATH variable. Run the command below and then add this line to the **~/.bashrc** or **~/.zshrc** file depending on your shell.
 
-```
+```bash
 export PATH=$HOME/mgc_cli:$PATH
 ```
 
 ### Windows
 
-A CLI possui arquivos de instalação separados para cada arquitetura. Baixe o arquivo correspondente a sua arquitetura (amd64 / arm) no repositório oficial.
+The CLI has separate installation files for each architecture. Download the file corresponding to your architecture (amd64 / arm) from the official repository.
 
-Para instalar a CLI no seu sistema Windows 10/11 siga os passos abaixo.
+To install the CLI on your Windows 10/11 system, follow the steps below.
 
-1. Extraia o conteúdo do arquivo ZIP para uma pasta de sua preferência.
+1. Extract the contents of the ZIP file to a folder of your choice.
     
-2. Abra um Prompt de Comando ou terminal Powershell na pasta onde você extraiu os arquivos.
+2. Open a Command Prompt or Powershell terminal in the folder where you extracted the files.
     
-3. Rode o comando abaixo para confirmar a instalação:
+3. Run the command below to confirm the installation:
     
-    ```
+    ```powershell
     mgc --version
     ```
 
-## Autenticação
+## Authentication
 
-Para fazer a autenticação na CLI e ter sua credencial armazenada no arquivo de configuração, você precisa rodar o seguinte comando:
+To authenticate in the CLI and have your credential stored in the configuration file, you need to run the following command:
 
-```
+```bash
 mgc auth login
 ```
 
-Este comando abrirá uma janela do seu navegador padrão diretamente no site do ID Magalu, onde você deverá fazer seu login. Ao terminar o procedimento e fechar o navegador, a CLI exibirá a confirmação e seu token de acesso será salvo no arquivo abaixo.
+This command will open a window in your default browser directly on the Magalu ID site, where you should log in. After completing the procedure and closing the browser, the CLI will display the confirmation, and your access token will be saved in the file below.
 
+```yaml
+$HOME/.config/mgc/<PROFILE>/auth.yaml
 ```
-$HOME/.config/mgc/<PERFIL>/auth.yaml
-```
 
-Onde <PERFIL> é o nome do perfil que você deseja configurar.
+Where <PROFILE> is the name of the profile you want to configure.
 
-Se você precisar do token de acesso para usar com a API da Magalu Cloud, você adquirir também rodando o comando abaixo.
+If you need the access token to use with the Magalu Cloud API, you can also get it by running the command below.
 
-```
+```bash
 mgc auth access-token
 ```
+
+## Technical Information
+
+- Built with Go
+- Open source
+- Cross-platform (Linux, macOS, Windows)
+- Supports both AMD64 and ARM architectures
