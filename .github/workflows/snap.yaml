@@ -110,8 +110,9 @@ jobs:
           grade: stable
           confinement: strict
 
-          architectures:
-            - build-on: amd64
+          platforms:
+            amd64:
+              build-on: amd64
 
           parts:
             mgccli:
@@ -129,7 +130,7 @@ jobs:
                 - network
                 - network-bind
           EOF
-          
+
       - name: Install Snapcraft
         if: ${{ !github.event.release.prerelease }}
         id: build
