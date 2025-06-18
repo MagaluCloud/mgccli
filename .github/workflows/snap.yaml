@@ -1,4 +1,4 @@
-name: Aptly Publish to S3
+name: Snap Publish to Snap Store
 
 on:
   release:
