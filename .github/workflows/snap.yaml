@@ -71,8 +71,8 @@ jobs:
         if: ${{ !github.event.release.prerelease }}
         run: |
           echo "Extracting files"
-          tar -xzf $ARCH_AMD64_TAR_GZ -C snap/amd64/bin/
-          tar -xzf $ARCH_ARM64_TAR_GZ -C snap/arm64/bin/
+          tar -xzf $ARCH_AMD64_TAR_GZ -C /tmp/snap/amd64/bin/
+          tar -xzf $ARCH_ARM64_TAR_GZ -C /tmp/snap/arm64/bin/
 
       - name: Create Snapcraft config
         if: ${{ !github.event.release.prerelease }}
@@ -109,8 +109,8 @@ jobs:
               plugin: dump
               source: .
               organize:
-                'mgc-linux-amd64': amd64/bin/mgc
-                'mgc-linux-arm64': arm64/bin/mgc
+                'mgc-linux-amd64': /tmp/snap/amd64/bin/mgc
+                'mgc-linux-arm64': /tmp/snap/arm64/bin/mgc
 
           apps:
             mgc:
