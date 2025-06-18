@@ -30,6 +30,8 @@ jobs:
           api_response=$(curl -s \
               "https://api.github.com/repos/${{ github.repository }}/releases/latest")
           RELEASE_TAG=$(echo "$api_response" | jq -r .tag_name)
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          
           assets_url=$(echo "$api_response" | jq -r .assets_url)
 
           echo "Processing release $RELEASE_TAG"
