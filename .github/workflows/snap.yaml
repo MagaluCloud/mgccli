@@ -94,23 +94,24 @@ jobs:
       - name: Create Snapcraft config
         if: ${{ !github.event.release.prerelease }}
         run: |
+          mkdir -p snap
           cat << EOF > snap/snapcraft.yaml
           name: mgccli
           base: core24
-          version: $RELEASE_TAG
-          summary: A simple test snap used to test the Github build action
+          version: '$RELEASE_TAG'
+          summary: MGC CLI - Magalu Cloud Command Line Interface
           description: |
-                The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
+            The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
 
-                Through the CLI, you can manage, among other things:
-                  * Object Storage (buckets, objects, ACL, versions, signed URLs)
-                  * Virtual Machines (instances, snapshots)
-                  * DBaaS (instances, replications)
-                  * Block Storage (volumes, VM associations)
-                  * VPC (subnets, security rules, public IP)
-                  * Kubernetes Cluster (create, scale, monitor)
-                  * Container Registry (images, repositories)
-                  * Load Balancer (create, scale, monitor)
+            Through the CLI, you can manage, among other things:
+            * Object Storage (buckets, objects, ACL, versions, signed URLs)
+            * Virtual Machines (instances, snapshots)
+            * DBaaS (instances, replications)
+            * Block Storage (volumes, VM associations)
+            * VPC (subnets, security rules, public IP)
+            * Kubernetes Cluster (create, scale, monitor)
+            * Container Registry (images, repositories)
+            * Load Balancer (create, scale, monitor)
 
           grade: stable
           confinement: strict
@@ -123,24 +124,53 @@ jobs:
 
           parts:
             mgccli:
-              plugin: dump
+              plugin: nil
               source: .
-              organize:
-                'mgc-linux-amd64': bin/mgc-amd64
-                'mgc-linux-arm64': bin/mgc-arm64
-              stage:
-                - bin/*
+              override-build: |
+                # Create bin directory
+                mkdir -p \$SNAPCRAFT_PART_INSTALL/bin
+                
+                # Copy both binaries
+                if [ -f "mgc-linux-amd64" ]; then
+                  cp mgc-linux-amd64 \$SNAPCRAFT_PART_INSTALL/bin/mgc-amd64
+                  chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc-amd64
+                  echo "AMD64 binary copied"
+                fi
+                
+                if [ -f "mgc-linux-arm64" ]; then
+                  cp mgc-linux-arm64 \$SNAPCRAFT_PART_INSTALL/bin/mgc-arm64
+                  chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc-arm64
+                  echo "ARM64 binary copied"
+                fi
+                
+                # Create a wrapper script that detects architecture at runtime
+                cat > \$SNAPCRAFT_PART_INSTALL/bin/mgc << 'EOL'
+          #!/bin/bash
+          ARCH=\$(uname -m)
+          if [ "\$ARCH" = "x86_64" ]; then
+            exec "\$SNAP/bin/mgc-amd64" "\$@"
+          elif [ "\$ARCH" = "aarch64" ]; then
+            exec "\$SNAP/bin/mgc-arm64" "\$@"
+          else
+            echo "Unsupported architecture: \$ARCH"
+            exit 1
+          fi
+          EOL
+                chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc
+                
+                echo "Wrapper script created"
+                echo "Files in bin:"
+                ls -la \$SNAPCRAFT_PART_INSTALL/bin/
 
           apps:
             mgc:
-              command: bin/mgc-$SNAP_ARCH
+              command: bin/mgc
               plugs:
                 - home # https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
                 - desktop # approve automatically
                 - network # approve automatically
                 - network-bind # approve automatically
           EOF
-   
    
       - name: Install Snapcraft
         if: ${{ !github.event.release.prerelease }}
