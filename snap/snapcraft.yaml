@@ -29,8 +29,8 @@ parts:
     plugin: dump
     source: .
     organize:
-      'mgc-linux-amd64': amd64/bin/mgc
-      'mgc-linux-arm64': arm64/bin/mgc
+      'mgc-linux-amd64': /tmp/snap/amd64/bin/mgc
+      'mgc-linux-arm64': /tmp/snap/arm64/bin/mgc
 
 apps:
   mgc:

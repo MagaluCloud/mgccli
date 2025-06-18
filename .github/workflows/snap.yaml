@@ -67,15 +67,29 @@ jobs:
           find /tmp/targz -name "*.tar.gz" | sort
           find /tmp/debs -name "*.deb" | sort
 
-      - name: Extract and copy files
+      - name: Extract and prepare binaries for snapcraft
         if: ${{ !github.event.release.prerelease }}
         run: |
-          echo "Creating directories"
-          mkdir -p /tmp/snap/amd64/bin /tmp/snap/arm64/bin
+          echo "Extracting binaries to current directory"
           
-          echo "Extracting files"
-          tar -xzf $ARCH_AMD64_TAR_GZ -C /tmp/snap/amd64/bin/
-          tar -xzf $ARCH_ARM64_TAR_GZ -C /tmp/snap/arm64/bin/
+          # Extract AMD64 binary
+          tar -xzf $ARCH_AMD64_TAR_GZ --strip-components=0 -C .
+          if [ -f mgc ]; then
+            mv mgc mgc-linux-amd64
+          fi
+          
+          # Extract ARM64 binary  
+          tar -xzf $ARCH_ARM64_TAR_GZ --strip-components=0 -C .
+          if [ -f mgc ]; then
+            mv mgc mgc-linux-arm64
+          fi
+          
+          # Make binaries executable
+          chmod +x mgc-linux-* 2>/dev/null || true
+          
+          # List what we have
+          echo "Binaries prepared:"
+          ls -la mgc-linux-*
 
       - name: Create Snapcraft config
         if: ${{ !github.event.release.prerelease }}
@@ -109,11 +123,24 @@ jobs:
 
           parts:
             mgccli:
-              plugin: dump
+              plugin: nil
               source: .
-              organize:
-                'mgc-linux-amd64': /tmp/snap/amd64/bin/mgc
-                'mgc-linux-arm64': /tmp/snap/arm64/bin/mgc
+              override-build: |
+                # Create bin directory
+                mkdir -p \$SNAPCRAFT_PART_INSTALL/bin
+                
+                # Copy the appropriate binary based on architecture
+                if [ "\$SNAPCRAFT_TARGET_ARCH" = "amd64" ] && [ -f "mgc-linux-amd64" ]; then
+                  cp mgc-linux-amd64 \$SNAPCRAFT_PART_INSTALL/bin/mgc
+                elif [ "\$SNAPCRAFT_TARGET_ARCH" = "arm64" ] && [ -f "mgc-linux-arm64" ]; then
+                  cp mgc-linux-arm64 \$SNAPCRAFT_PART_INSTALL/bin/mgc
+                else
+                  echo "Binary for architecture \$SNAPCRAFT_TARGET_ARCH not found"
+                  exit 1
+                fi
+                
+                # Make executable
+                chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc
 
           apps:
             mgc:
