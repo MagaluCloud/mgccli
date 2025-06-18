@@ -26,7 +26,7 @@ jobs:
       - name: Download GitHub Release Assets
         if: ${{ !github.event.release.prerelease }}
         run: |
-          mkdir -p /tmp/debs/amd64 /tmp/debs/arm64
+          mkdir -p /tmp/targz/amd64 /tmp/targz/arm64
           api_response=$(curl -s \
               "https://api.github.com/repos/${{ github.repository }}/releases/latest")
           RELEASE_TAG=$(echo "$api_response" | jq -r .tag_name)
@@ -42,7 +42,7 @@ jobs:
           amd64_tar_gz_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_amd64.tar.gz")) | .browser_download_url')
           if [ -n "$amd64_tar_gz_asset" ]; then
             echo "Downloading AMD64 tar.gz package: $amd64_tar_gz_asset"
-            ARCH_AMD64_TAR_GZ=/tmp/debs/amd64/$(basename $amd64_tar_gz_asset)
+            ARCH_AMD64_TAR_GZ=/tmp/targz/amd64/$(basename $amd64_tar_gz_asset)
             curl -L -o "$ARCH_AMD64_TAR_GZ" "$amd64_tar_gz_asset"
             echo "ARCH_AMD64_TAR_GZ=$ARCH_AMD64_TAR_GZ" >> $GITHUB_ENV
           else
@@ -54,7 +54,7 @@ jobs:
           arm64_tar_gz_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_arm64.tar.gz")) | .browser_download_url')
           if [ -n "$arm64_tar_gz_asset" ]; then
             echo "Downloading ARM64 tar.gz package: $arm64_tar_gz_asset"
-            ARCH_ARM64_TAR_GZ=/tmp/debs/arm64/$(basename $arm64_tar_gz_asset)
+            ARCH_ARM64_TAR_GZ=/tmp/targz/arm64/$(basename $arm64_tar_gz_asset)
             curl -L -o "$ARCH_ARM64_TAR_GZ" "$arm64_tar_gz_asset"
             echo "ARCH_ARM64_TAR_GZ=$ARCH_ARM64_TAR_GZ" >> $GITHUB_ENV
           else
@@ -64,12 +64,15 @@ jobs:
 
           # Verify downloads
           echo "Downloaded packages:"
-          find /tmp/debs -name "*.tar.gz" | sort
+          find /tmp/targz -name "*.tar.gz" | sort
           find /tmp/debs -name "*.deb" | sort
 
       - name: Extract and copy files
         if: ${{ !github.event.release.prerelease }}
         run: |
+          echo "Creating directories"
+          mkdir -p /tmp/snap/amd64/bin /tmp/snap/arm64/bin
+          
           echo "Extracting files"
           tar -xzf $ARCH_AMD64_TAR_GZ -C /tmp/snap/amd64/bin/
           tar -xzf $ARCH_ARM64_TAR_GZ -C /tmp/snap/arm64/bin/
