@@ -1,0 +1,171 @@
+name: Aptly Publish to S3
+
+on:
+  release:
+    types: [published]
+    if: ${{ !github.event.release.prerelease }}
+  workflow_dispatch:
+
+jobs:
+  snap-publish:
+    runs-on: ubuntu-latest
+
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
+      # Dynamic variables
+      RELEASE_TAG: v0
+      ARCH_ARM64: arm64
+      ARCH_AMD64: amd64
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          fetch-depth: 1
+
+      - name: Download GitHub Release Assets
+        run: |
+          mkdir -p /tmp/debs/amd64 /tmp/debs/arm64
+          api_response=$(curl -s \
+              "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          RELEASE_TAG=$(echo "$api_response" | jq -r .tag_name)
+          assets_url=$(echo "$api_response" | jq -r .assets_url)
+
+          echo "Processing release $RELEASE_TAG"
+          echo "Assets URL: $assets_url"
+
+          # Download amd64 .deb file
+          amd64_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_amd64.deb")) | .browser_download_url')
+          if [ -n "$amd64_asset" ]; then
+            echo "Downloading AMD64 package: $amd64_asset"
+            ARCH_AMD64=/tmp/debs/amd64/$(basename $amd64_asset)
+            curl -L -o "$ARCH_AMD64" "$amd64_asset"
+
+          else
+            echo "No AMD64 .deb package found in release"
+            exit 1
+          fi
+
+          # Download arm64 .deb file
+          arm64_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_arm64.deb")) | .browser_download_url')
+          if [ -n "$arm64_asset" ]; then
+            echo "Downloading ARM64 package: $arm64_asset"
+            ARCH_ARM64=/tmp/debs/arm64/$(basename $arm64_asset)
+            curl -L -o "$ARCH_ARM64" "$arm64_asset"
+          else
+            echo "No ARM64 .deb package found in release"
+            exit 1
+          fi
+
+          # Verify downloads
+          echo "Downloaded packages:"
+          find /tmp/debs -name "*.deb" | sort
+
+      - name: Set up GPG
+        run: |
+          # Create .gnupg directory with appropriate permissions
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+
+          # Set stricter permissions on GPG home directory
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "batch" >> ~/.gnupg/gpg.conf
+          echo "no-tty" >> ~/.gnupg/gpg.conf
+
+          # Import public key first
+          echo "${{ secrets.MAGALUBOT_GPG_PUBLIC_KEY }}" | gpg --import --batch
+
+          # Import private key using temp file to avoid stdin issues
+          GPG_PRIV_KEY_FILE=$(mktemp)
+          echo "${{ secrets.MAGALUBOT_GPG_PRIVATE_KEY }}" > "$GPG_PRIV_KEY_FILE"
+          chmod 600 "$GPG_PRIV_KEY_FILE"
+
+          # Import private key with passphrase
+          cat "$GPG_PRIV_KEY_FILE" | gpg --batch --import --passphrase "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" 2>/dev/null
+
+          # Clean up temp file
+          rm -f "$GPG_PRIV_KEY_FILE"
+
+          # Set key to ultimately trusted
+          echo -e "5\ny\n" | gpg --command-fd 0 --batch --no-tty --edit-key "$GPG_FINGERPRINT" trust
+
+          # List imported keys for verification
+          gpg --list-secret-keys
+
+          # Properly configure GPG agent
+          gpgconf --kill gpg-agent || true
+          gpg-connect-agent /bye
+
+          # Test key signing to ensure functionality
+          echo "Testing GPG signing capability..."
+          echo "test" | gpg --batch --yes --passphrase "${{ secrets.MAGALUBOT_GPG_PASSPHRASE }}" --pinentry-mode loopback -s -o /dev/null 
+
+          # Verify the GPG agent is properly configured for aptly
+          echo "export GPG_TTY=$(tty)" >> ~/.bashrc
+          echo "export GPG_TTY=$(tty)" >> $GITHUB_ENV
+
+      - name: Copy files
+        run: |
+          cp -r $ARCH_ARM64 snap/arm64/bin/mgc
+          cp -r $ARCH_AMD64 snap/amd64/bin/mgc
+
+      - name: Create Snapcraft config
+        run: |
+cat <<EOF > snap/snapcraft.yaml
+name: mgccli
+base: core24
+version: '$RELEASE_TAG'
+summary: A simple test snap used to test the Github build action
+description: |
+      The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
+
+      Through the CLI, you can manage, among other things:
+        * Object Storage (buckets, objects, ACL, versions, signed URLs)
+        * Virtual Machines (instances, snapshots)
+        * DBaaS (instances, replications)
+        * Block Storage (volumes, VM associations)
+        * VPC (subnets, security rules, public IP)
+        * Kubernetes Cluster (create, scale, monitor)
+        * Container Registry (images, repositories)
+        * Load Balancer (create, scale, monitor)
+
+grade: stable
+confinement: strict
+
+platforms:
+  amd64:
+    build-on: amd64
+  arm64:
+    build-on: arm64
+
+parts:
+  mgccli:
+    plugin: dump
+    source: .
+    organize:
+      'mgc-linux-amd64': amd64/bin/mgc
+      'mgc-linux-arm64': arm64/bin/mgc
+
+apps:
+  mgc:
+    command: $SNAP_ARCH/bin/mgc
+    plugs:
+      - home ## https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
+      - desktop ## aprove automatically
+      - network ## aprove automatically
+      - network-bind ## aprove automatically
+EOF
+   
+   
+      - name: Install Snapcraft
+        id: build
+        uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+      
+      - name: Publish Snap
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
