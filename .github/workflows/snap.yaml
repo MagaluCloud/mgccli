@@ -109,6 +109,9 @@ jobs:
       - name: Copy files
         if: ${{ !github.event.release.prerelease }}
         run: |
+          echo "Copying files"
+          echo "ARCH_ARM64: $ARCH_ARM64"
+          echo "ARCH_AMD64: $ARCH_AMD64"
           cp -r $ARCH_ARM64 snap/arm64/bin/mgc
           cp -r $ARCH_AMD64 snap/amd64/bin/mgc
 
