@@ -123,24 +123,13 @@ jobs:
 
           parts:
             mgccli:
-              plugin: nil
+              plugin: dump
               source: .
-              override-build: |
-                # Create bin directory
-                mkdir -p \$SNAPCRAFT_PART_INSTALL/bin
-                
-                # Copy the appropriate binary based on architecture
-                if [ "\$SNAPCRAFT_TARGET_ARCH" = "amd64" ] && [ -f "mgc-linux-amd64" ]; then
-                  cp mgc-linux-amd64 \$SNAPCRAFT_PART_INSTALL/bin/mgc
-                elif [ "\$SNAPCRAFT_TARGET_ARCH" = "arm64" ] && [ -f "mgc-linux-arm64" ]; then
-                  cp mgc-linux-arm64 \$SNAPCRAFT_PART_INSTALL/bin/mgc
-                else
-                  echo "Binary for architecture \$SNAPCRAFT_TARGET_ARCH not found"
-                  exit 1
-                fi
-                
-                # Make executable
-                chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc
+              organize:
+                'mgc-linux-amd64': bin/mgc-amd64
+                'mgc-linux-arm64': bin/mgc-arm64
+              stage:
+                - bin/*
 
           apps:
             mgc:
