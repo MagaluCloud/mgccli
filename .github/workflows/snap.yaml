@@ -143,4 +143,4 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
         with:
           snap: ${{ steps.build.outputs.snap }}
-          release: edge
+          release: stable
