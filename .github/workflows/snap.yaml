@@ -112,50 +112,50 @@ jobs:
 
       - name: Create Snapcraft config
         run: |
-cat <<EOF > snap/snapcraft.yaml
-name: mgccli
-base: core24
-version: '$RELEASE_TAG'
-summary: A simple test snap used to test the Github build action
-description: |
-      The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
+          cat << 'EOF' > snap/snapcraft.yaml
+          name: mgccli
+          base: core24
+          version: '$RELEASE_TAG'
+          summary: A simple test snap used to test the Github build action
+          description: |
+                The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
 
-      Through the CLI, you can manage, among other things:
-        * Object Storage (buckets, objects, ACL, versions, signed URLs)
-        * Virtual Machines (instances, snapshots)
-        * DBaaS (instances, replications)
-        * Block Storage (volumes, VM associations)
-        * VPC (subnets, security rules, public IP)
-        * Kubernetes Cluster (create, scale, monitor)
-        * Container Registry (images, repositories)
-        * Load Balancer (create, scale, monitor)
+                Through the CLI, you can manage, among other things:
+                  * Object Storage (buckets, objects, ACL, versions, signed URLs)
+                  * Virtual Machines (instances, snapshots)
+                  * DBaaS (instances, replications)
+                  * Block Storage (volumes, VM associations)
+                  * VPC (subnets, security rules, public IP)
+                  * Kubernetes Cluster (create, scale, monitor)
+                  * Container Registry (images, repositories)
+                  * Load Balancer (create, scale, monitor)
 
-grade: stable
-confinement: strict
+          grade: stable
+          confinement: strict
 
-platforms:
-  amd64:
-    build-on: amd64
-  arm64:
-    build-on: arm64
+          platforms:
+            amd64:
+              build-on: amd64
+            arm64:
+              build-on: arm64
 
-parts:
-  mgccli:
-    plugin: dump
-    source: .
-    organize:
-      'mgc-linux-amd64': amd64/bin/mgc
-      'mgc-linux-arm64': arm64/bin/mgc
+          parts:
+            mgccli:
+              plugin: dump
+              source: .
+              organize:
+                'mgc-linux-amd64': amd64/bin/mgc
+                'mgc-linux-arm64': arm64/bin/mgc
 
-apps:
-  mgc:
-    command: $SNAP_ARCH/bin/mgc
-    plugs:
-      - home ## https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
-      - desktop ## aprove automatically
-      - network ## aprove automatically
-      - network-bind ## aprove automatically
-EOF
+          apps:
+            mgc:
+              command: $SNAP_ARCH/bin/mgc
+              plugs:
+                - home ## https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
+                - desktop ## aprove automatically
+                - network ## aprove automatically
+                - network-bind ## aprove automatically
+          EOF
    
    
       - name: Install Snapcraft
