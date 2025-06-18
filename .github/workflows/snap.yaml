@@ -133,12 +133,12 @@ jobs:
 
           apps:
             mgc:
-              command: $SNAP_ARCH/bin/mgc
+              command: bin/mgc-$SNAP_ARCH
               plugs:
-                - home ## https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
-                - desktop ## aprove automatically
-                - network ## aprove automatically
-                - network-bind ## aprove automatically
+                - home # https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
+                - desktop # approve automatically
+                - network # approve automatically
+                - network-bind # approve automatically
           EOF
    
    
