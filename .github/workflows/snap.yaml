@@ -18,11 +18,13 @@ jobs:
 
     steps:
       - name: Checkout Repository
+        if: ${{ !github.event.release.prerelease }}
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           fetch-depth: 1
 
       - name: Download GitHub Release Assets
+        if: ${{ !github.event.release.prerelease }}
         run: |
           mkdir -p /tmp/debs/amd64 /tmp/debs/arm64
           api_response=$(curl -s \
@@ -105,11 +107,13 @@ jobs:
       #     echo "export GPG_TTY=$(tty)" >> $GITHUB_ENV
 
       - name: Copy files
+        if: ${{ !github.event.release.prerelease }}
         run: |
           cp -r $ARCH_ARM64 snap/arm64/bin/mgc
           cp -r $ARCH_AMD64 snap/amd64/bin/mgc
 
       - name: Create Snapcraft config
+        if: ${{ !github.event.release.prerelease }}
         run: |
           cat << 'EOF' > snap/snapcraft.yaml
           name: mgccli
@@ -158,10 +162,12 @@ jobs:
    
    
       - name: Install Snapcraft
+        if: ${{ !github.event.release.prerelease }}
         id: build
         uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
       
       - name: Publish Snap
+        if: ${{ !github.event.release.prerelease }}
         uses: snapcore/action-publish@v1
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
