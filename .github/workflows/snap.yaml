@@ -67,31 +67,25 @@ jobs:
           find /tmp/targz -name "*.tar.gz" | sort
           find /tmp/debs -name "*.deb" | sort
 
-      - name: Extract and prepare binaries for snapcraft
+      - name: Extract and prepare single binary
         if: ${{ !github.event.release.prerelease }}
         run: |
-          echo "Extracting binaries to current directory"
-          
-          # Extract AMD64 binary
+          echo "Extracting AMD64 binary as default"
           tar -xzf $ARCH_AMD64_TAR_GZ --strip-components=0 -C .
+          
+          # If the extracted file is named differently, rename it
           if [ -f mgc ]; then
-            mv mgc mgc-linux-amd64
+            echo "Binary 'mgc' found and ready"
+          else
+            # Find the binary and rename it to mgc
+            find . -name "*mgc*" -type f -executable | head -1 | xargs -I {} mv {} mgc
           fi
           
-          # Extract ARM64 binary  
-          tar -xzf $ARCH_ARM64_TAR_GZ --strip-components=0 -C .
-          if [ -f mgc ]; then
-            mv mgc mgc-linux-arm64
-          fi
-          
-          # Make binaries executable
-          chmod +x mgc-linux-* 2>/dev/null || true
-          
-          # List what we have
-          echo "Binaries prepared:"
-          ls -la mgc-linux-*
+          chmod +x mgc
+          echo "Binary prepared:"
+          ls -la mgc
 
-      - name: Create Snapcraft config
+      - name: Create Simple Snapcraft config
         if: ${{ !github.event.release.prerelease }}
         run: |
           mkdir -p snap
@@ -116,62 +110,26 @@ jobs:
           grade: stable
           confinement: strict
 
-          platforms:
-            amd64:
-              build-on: amd64
-            arm64:
-              build-on: arm64
+          architectures:
+            - build-on: amd64
 
           parts:
             mgccli:
-              plugin: nil
+              plugin: dump
               source: .
-              override-build: |
-                # Create bin directory
-                mkdir -p \$SNAPCRAFT_PART_INSTALL/bin
-                
-                # Copy both binaries
-                if [ -f "mgc-linux-amd64" ]; then
-                  cp mgc-linux-amd64 \$SNAPCRAFT_PART_INSTALL/bin/mgc-amd64
-                  chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc-amd64
-                  echo "AMD64 binary copied"
-                fi
-                
-                if [ -f "mgc-linux-arm64" ]; then
-                  cp mgc-linux-arm64 \$SNAPCRAFT_PART_INSTALL/bin/mgc-arm64
-                  chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc-arm64
-                  echo "ARM64 binary copied"
-                fi
-                
-                # Create a wrapper script that detects architecture at runtime
-                cat > \$SNAPCRAFT_PART_INSTALL/bin/mgc << 'EOL'
-          #!/bin/bash
-          ARCH=\$(uname -m)
-          if [ "\$ARCH" = "x86_64" ]; then
-            exec "\$SNAP/bin/mgc-amd64" "\$@"
-          elif [ "\$ARCH" = "aarch64" ]; then
-            exec "\$SNAP/bin/mgc-arm64" "\$@"
-          else
-            echo "Unsupported architecture: \$ARCH"
-            exit 1
-          fi
-          EOL
-                chmod +x \$SNAPCRAFT_PART_INSTALL/bin/mgc
-                
-                echo "Wrapper script created"
-                echo "Files in bin:"
-                ls -la \$SNAPCRAFT_PART_INSTALL/bin/
+              organize:
+                'mgc': bin/mgc
 
           apps:
             mgc:
               command: bin/mgc
               plugs:
-                - home # https://forum.snapcraft.io/t/classic-confinement-for-mgccli/45931/6
-                - desktop # approve automatically
-                - network # approve automatically
-                - network-bind # approve automatically
+                - home
+                - desktop
+                - network
+                - network-bind
           EOF
-   
+          
       - name: Install Snapcraft
         if: ${{ !github.event.release.prerelease }}
         id: build
