@@ -2,7 +2,7 @@ name: Aptly Publish to S3
 
 on:
   release:
-    types: [published]
+    types: [released]
   workflow_dispatch:
 
 jobs:
