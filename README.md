@@ -65,6 +65,14 @@ To install the CLI from the rpm package, run the command below in the same direc
 sudo rpm -i mgccli_x.xx.x_linux_amd64.rpm
 ```
 
+#### **Snap Package**
+
+The CLI is also availble as a [snap package](https://snapcraft.io/mgccli) on the snapstore. You can install it by running:
+
+```bash
+snap install mgccli
+```
+
 #### **Tar.gz Archive**
 
 Open a terminal and run the following command to create a directory dedicated to the CLI in your user's home directory.
@@ -139,11 +147,11 @@ The CLI has separate installation files for each architecture. Download the file
 To install the CLI on your Windows 10/11 system, follow the steps below.
 
 1. Extract the contents of the ZIP file to a folder of your choice.
-    
+
 2. Open a Command Prompt or Powershell terminal in the folder where you extracted the files.
-    
+
 3. Run the command below to confirm the installation:
-    
+
     ```powershell
     mgc --version
     ```
