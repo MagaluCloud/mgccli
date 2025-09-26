@@ -1,8 +1,6 @@
 name: Homolog - Snap Publish to Edge Channel
 
 on:
-  release:
-    types: [released]
   workflow_dispatch:
 
 jobs:
@@ -107,7 +105,7 @@ jobs:
             * Container Registry (images, repositories)
             * Load Balancer (create, scale, monitor)
 
-          grade: stable ## stable = prod // edge = homolog
+          grade: stable
           confinement: strict
 
           platforms:
@@ -146,4 +144,6 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
         with:
           snap: ${{ steps.build.outputs.snap }}
-          release: stable
+          ## edge = HOMOLOG
+          ## stable = PRODUCTION
+          release: edge
