@@ -1,0 +1,149 @@
+name: Homolog - Snap Publish to Edge Channel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  snap-publish:
+    runs-on: ubuntu-latest
+
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
+      # Dynamic variables
+      RELEASE_TAG: nil
+      ARCH_AMD64_TAR_GZ: nil
+      ARCH_ARM64_TAR_GZ: nil
+
+    steps:
+      - name: Checkout Repository
+        if: ${{ !github.event.release.prerelease }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          fetch-depth: 1
+
+      - name: Download GitHub Release Assets
+        if: ${{ !github.event.release.prerelease }}
+        run: |
+          mkdir -p /tmp/targz/amd64 /tmp/targz/arm64
+          api_response=$(curl -s \
+              "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          RELEASE_TAG=$(echo "$api_response" | jq -r .tag_name)
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+
+          assets_url=$(echo "$api_response" | jq -r .assets_url)
+
+          echo "Processing release $RELEASE_TAG"
+          echo "Assets URL: $assets_url"
+
+
+          # Download bin amd64 tar.gz file
+          amd64_tar_gz_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_amd64.tar.gz")) | .browser_download_url')
+          if [ -n "$amd64_tar_gz_asset" ]; then
+            echo "Downloading AMD64 tar.gz package: $amd64_tar_gz_asset"
+            ARCH_AMD64_TAR_GZ=/tmp/targz/amd64/$(basename $amd64_tar_gz_asset)
+            curl -L -o "$ARCH_AMD64_TAR_GZ" "$amd64_tar_gz_asset"
+            echo "ARCH_AMD64_TAR_GZ=$ARCH_AMD64_TAR_GZ" >> $GITHUB_ENV
+          else
+            echo "No AMD64 tar.gz package found in release"
+            exit 1
+          fi
+
+          # Download bin arm64 tar.gz file
+          arm64_tar_gz_asset=$(curl -s $assets_url | jq -r '.[] | select(.name | endswith("_linux_arm64.tar.gz")) | .browser_download_url')
+          if [ -n "$arm64_tar_gz_asset" ]; then
+            echo "Downloading ARM64 tar.gz package: $arm64_tar_gz_asset"
+            ARCH_ARM64_TAR_GZ=/tmp/targz/arm64/$(basename $arm64_tar_gz_asset)
+            curl -L -o "$ARCH_ARM64_TAR_GZ" "$arm64_tar_gz_asset"
+            echo "ARCH_ARM64_TAR_GZ=$ARCH_ARM64_TAR_GZ" >> $GITHUB_ENV
+          else
+            echo "No ARM64 tar.gz package found in release"
+            exit 1
+          fi
+
+          # Verify downloads
+          echo "Downloaded packages:"
+          find /tmp/targz -name "*.tar.gz" | sort
+          find /tmp/debs -name "*.deb" | sort
+
+      - name: Extract and prepare single binary
+        if: ${{ !github.event.release.prerelease }}
+        run: |
+          echo "Extracting AMD64 binary as default"
+          tar -xzf $ARCH_AMD64_TAR_GZ --strip-components=0 -C .
+          
+          # If the extracted file is named differently, rename it
+          if [ -f mgc ]; then
+            echo "Binary 'mgc' found and ready"
+          else
+            # Find the binary and rename it to mgc
+            find . -name "*mgc*" -type f -executable | head -1 | xargs -I {} mv {} mgc
+          fi
+          
+          chmod +x mgc
+          echo "Binary prepared:"
+          ls -la mgc
+
+      - name: Create Simple Snapcraft config
+        if: ${{ !github.event.release.prerelease }}
+        run: |
+          mkdir -p snap
+          cat << EOF > snap/snapcraft.yaml
+          name: mgccli
+          base: core24
+          version: '$RELEASE_TAG'
+          summary: MGC CLI - Magalu Cloud Command Line Interface
+          description: |
+            The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
+
+            Through the CLI, you can manage, among other things:
+            * Object Storage (buckets, objects, ACL, versions, signed URLs)
+            * Virtual Machines (instances, snapshots)
+            * DBaaS (instances, replications)
+            * Block Storage (volumes, VM associations)
+            * VPC (subnets, security rules, public IP)
+            * Kubernetes Cluster (create, scale, monitor)
+            * Container Registry (images, repositories)
+            * Load Balancer (create, scale, monitor)
+
+          grade: stable
+          confinement: strict
+
+          platforms:
+            amd64:
+              build-on: amd64
+
+          parts:
+            mgccli:
+              plugin: dump
+              source: .
+              organize:
+                'mgc': bin/mgc
+
+          apps:
+            mgc:
+              command: bin/mgc
+              plugs:
+                - home
+                - desktop
+                - network
+                - network-bind
+
+          
+          completer: bin/mgc completion bash
+          EOF
+
+      - name: Install Snapcraft
+        if: ${{ !github.event.release.prerelease }}
+        id: build
+        uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+      
+      - name: Publish Snap
+        if: ${{ !github.event.release.prerelease }}
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.REPO_SNAPCRAFT_TOKEN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          ## edge = HOMOLOG
+          ## stable = PRODUCTION
+          release: edge
