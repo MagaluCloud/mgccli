@@ -81,8 +81,8 @@ jobs:
           
           chmod +x mgc
           # Generate bash completion
-          ./mgc completion bash > mgc-completion.bash
-          echo "complete -F __start_mgc mgccli.mgc" >> $CRAFT_PART_INSTALL/mgccli.bash
+          ./mgc completion bash > mgccli.bash
+          echo "complete -F __start_mgc mgccli.mgc" >> mgccli.bash
 
           echo "Binary prepared:"
 
