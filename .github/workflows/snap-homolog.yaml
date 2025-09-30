@@ -81,7 +81,6 @@ jobs:
           
           chmod +x mgc
           echo "Binary prepared:"
-          ls -la mgc
 
       - name: Create Simple Snapcraft config
         if: ${{ !github.event.release.prerelease }}
@@ -116,6 +115,10 @@ jobs:
             mgccli:
               plugin: dump
               source: .
+              override-build: |
+                craftctl default
+                ./mgc completion bash > $CRAFT_PART_INSTALL/mgccli.bash
+                echo "complete -F __start_mgc mgccli.mgc" >> $CRAFT_PART_INSTALL/mgccli.bash
               organize:
                 'mgc': bin/mgc
 
@@ -127,9 +130,7 @@ jobs:
                 - desktop
                 - network
                 - network-bind
-
-          
-          completer: bin/mgc completion bash
+              completer: mgccli.bash
           EOF
 
       - name: Install Snapcraft
