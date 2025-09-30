@@ -80,6 +80,10 @@ jobs:
           fi
           
           chmod +x mgc
+          # Generate bash completion
+          ./mgc completion bash > mgc-completion.bash
+          echo "complete -F __start_mgc mgccli.mgc" >> $CRAFT_PART_INSTALL/mgccli.bash
+
           echo "Binary prepared:"
 
       - name: Create Simple Snapcraft config
@@ -115,12 +119,9 @@ jobs:
             mgccli:
               plugin: dump
               source: .
-              override-build: |
-                craftctl default
-                ./mgc completion bash > $CRAFT_PART_INSTALL/mgccli.bash
-                echo "complete -F __start_mgc mgccli.mgc" >> $CRAFT_PART_INSTALL/mgccli.bash
               organize:
                 'mgc': bin/mgc
+                'mgccli.bash': mgccli.bash
 
           apps:
             mgc:
