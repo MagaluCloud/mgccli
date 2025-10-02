@@ -1,0 +1,43 @@
+name: mgccli
+base: core24
+version: 0.39.1-rc1
+summary: MGC CLI - Magalu Cloud Command Line Interface
+description: |
+            The **MGC CLI** (Command Line Interface) is a tool that allows users to interact with Magalu Cloud services through the command line.
+
+            Through the CLI, you can manage, among other things:
+            * Object Storage (buckets, objects, ACL, versions, signed URLs)
+            * Virtual Machines (instances, snapshots)
+            * DBaaS (instances, replications)
+            * Block Storage (volumes, VM associations)
+            * VPC (subnets, security rules, public IP)
+            * Kubernetes Cluster (create, scale, monitor)
+            * Container Registry (images, repositories)
+            * Load Balancer (create, scale, monitor)
+
+grade: stable
+confinement: strict
+
+platforms:
+  amd64:
+    build-on: amd64
+
+parts:
+  mgccli:
+    plugin: dump
+    source: .
+    organize:
+      'mgc': mgc
+      'mgccli.mgc': mgccli.mgc.completion.bash
+
+apps:
+  mgc:
+    command: mgc
+    aliases: 
+      - mgc
+    plugs:
+      - home
+      - desktop
+      - network
+      - network-bind
+    completer: mgccli.mgc.completion.bash

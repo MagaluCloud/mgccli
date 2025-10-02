@@ -80,10 +80,6 @@ jobs:
           fi
           
           chmod +x mgc
-          # Generate bash completion
-          ./mgc completion bash > mgccli.bash
-          echo "complete -F __start_mgc mgccli.mgc" >> mgccli.bash
-
           echo "Binary prepared:"
 
       - name: Create Simple Snapcraft config
@@ -120,18 +116,20 @@ jobs:
               plugin: dump
               source: .
               organize:
-                'mgc': bin/mgc
-                'mgccli.bash': mgccli.bash
+                'mgc': mgc
+                'mgccli.mgc': mgccli.mgc.completion.bash
 
           apps:
             mgc:
-              command: bin/mgc
+              command: mgc
+              aliases: 
+                - mgc
               plugs:
                 - home
                 - desktop
                 - network
                 - network-bind
-              completer: mgccli.bash
+              completer: mgccli.mgc.completion.bash
           EOF
 
       - name: Install Snapcraft
