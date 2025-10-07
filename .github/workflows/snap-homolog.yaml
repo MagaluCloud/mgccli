@@ -1,6 +1,8 @@
 name: Homolog - Snap Publish to Edge Channel
 
 on:
+  release:
+    types: [released]
   workflow_dispatch:
 
 jobs:
