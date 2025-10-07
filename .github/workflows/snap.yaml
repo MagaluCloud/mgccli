@@ -119,16 +119,20 @@ jobs:
               plugin: dump
               source: .
               organize:
-                'mgc': bin/mgc
+                'mgc': mgc
+                'mgccli.mgc': mgccli.mgc.completion.bash
 
           apps:
             mgc:
-              command: bin/mgc
+              command: mgc
+              aliases: 
+                - mgc
               plugs:
                 - home
                 - desktop
                 - network
                 - network-bind
+              completer: mgccli.mgc.completion.bash
           EOF
 
       - name: Install Snapcraft
