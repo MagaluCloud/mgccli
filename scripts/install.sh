@@ -17,11 +17,12 @@ BIN_NAME="mgc"
 OPT_VERSION=""
 OPT_SYSTEM=0
 OPT_QUIET=0
+OPT_DEBUG=0
 
 # ======================
 # Variaveis de instalacao
 # ======================
-SO=""                           # "linux" | "macos" | freebsd
+SO=""                           # "linux" | "darwin" | freebsd
 ARCH=""                         # "x86_64" | "aarch64"
 TERMINAL=""                     # "bash" | "zsh"
 REAL_HOME=""                    # home do usuario real (considera SUDO_USER)
@@ -65,6 +66,7 @@ log() {
 }
 warn() { printf "%b==> aviso:%b %s\n" "$COLOR_YELLOW" "$COLOR_RESET" "$1" >&2; }
 error()  { printf "%b==> erro:%b %s\n" "$COLOR_RED" "$COLOR_RESET" "$1" >&2; exit 1; }
+debug() { [ "$OPT_DEBUG" = "1" ] && printf "==> debug: %s\n" "$1" >&2; return 0; }
 
 # ======================
 # Ajuda e parse de argumentos
@@ -82,6 +84,7 @@ Flags:
                             Downgrades (instalar uma versao mais antiga que a ja instalada) nao sao suportados.
   --system                  Instala em /usr/local/bin (requer root/sudo), em vez do padrao user-local ($HOME/.local).
   --quiet                   Suprime output nao-essencial. Erros e avisos continuam sendo exibidos.
+  --debug                   Exibe mensagens de debug adicionais.
   --help                    Mostra esta ajuda.
 
 Exemplos:
@@ -113,6 +116,10 @@ parse_args() {
                 OPT_QUIET=1
                 shift
                 ;;
+            --debug)
+                OPT_DEBUG=1
+                shift
+                ;;
             --help|-h)
                 usage
                 exit 0
@@ -130,10 +137,11 @@ parse_args() {
 detect_os() {
     case "$(uname -s)" in
         Linux)   SO="linux" ;;
-        Darwin)  SO="macos" ;;
+        Darwin)  SO="darwin" ;;
         FreeBSD) SO="freebsd" ;;
         *) error "sistema operacional não suportado: $(uname -s). Baixe manualmente em ${GITHUB_RELEASES}" ;;
     esac
+    debug "sistema operacional detectado: $SO"
 }
 
 detect_arch() {
@@ -142,12 +150,13 @@ detect_arch() {
         aarch64|arm64) ARCH="arm64" ;;
         *) error "arquitetura não suportada: $(uname -m). Baixe manualmente em ${GITHUB_RELEASES}" ;;
     esac
+    debug "arquitetura detectada: $ARCH"
 }
 
 verify_dependencies() {
   required="curl mktemp uname tar"
   case "$SO" in
-    linux|freebsd|macos) ;;
+    linux|freebsd|darwin) ;;
     *) error "Erro interno: Sistema operacional nao reconhecido '$SO'" ;;
   esac
 
@@ -169,6 +178,7 @@ verify_dependencies() {
   if [ -n "$missing" ]; then
     error "Dependencias nao encontradas:$missing. Instale-as e tente novamente."
   fi
+  debug "comando de checksum selecionado: $CHECKSUM_CMD"
 }
 
 previlege_check() {
@@ -182,11 +192,13 @@ resolve_install_dirs() {
     if [ "$OPT_SYSTEM" = "1" ]; then
         BIN_DIR="/usr/local/bin"
         DATA_DIR="/usr/local/share/mgccli"
+        debug "diretorios de instalacao (system): BIN_DIR=$BIN_DIR DATA_DIR=$DATA_DIR"
         return
     fi
 
     BIN_DIR="$REAL_HOME/.local/bin"
     DATA_DIR="$REAL_HOME/.local/share/mgccli"
+    debug "diretorios de instalacao (user-local): BIN_DIR=$BIN_DIR DATA_DIR=$DATA_DIR"
 }
 
 resolve_real_user() {
@@ -204,6 +216,7 @@ resolve_real_user() {
             [ -n "$parsed_shell" ] && REAL_SHELL="$parsed_shell"
         fi
     fi
+    debug "usuario real: REAL_HOME=$REAL_HOME REAL_SHELL=$REAL_SHELL"
 }
 
 verify_terminal() {
@@ -212,6 +225,7 @@ verify_terminal() {
         bash|zsh) TERMINAL="$shell_name" ;;
         *) TERMINAL="" ;;
     esac
+    debug "shell detectado: ${TERMINAL:-desconhecido}"
 }
 
 # Rodando via sudo, tudo que criamos nasce com dono root. Devolve ao usuario
@@ -244,6 +258,7 @@ resolve_target_version() {
 
     printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
         || error "versao invalida: '$VERSION' (formato esperado: X.Y.Z)."
+    debug "versao alvo resolvida: $VERSION"
 }
 
 capture_previous_insallation(){
@@ -265,6 +280,7 @@ capture_previous_insallation(){
         PREVIOUS_PATHS="$PREVIOUS_PATHS $candidate"
         PREVIOUS_VERSIONS="$PREVIOUS_VERSIONS $version"
     done
+    debug "instalacoes anteriores encontradas: paths=[$PREVIOUS_PATHS ] versions=[$PREVIOUS_VERSIONS ]"
 }
 
 get_highest_installed_version(){
@@ -272,6 +288,7 @@ get_highest_installed_version(){
         | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
         | sort -t. -k1,1n -k2,2n -k3,3n \
         | tail -n1)
+    debug "maior versao instalada: ${HIGHEST_INSTALLED_VERSION:-nenhuma}"
 }
 
 is_downgrade() {
@@ -313,18 +330,22 @@ cleanup() {
 setup_temp_dir() {
     TEMP_DIR=$(mktemp -d 2>/dev/null) || error "falha ao criar diretorio temporario (mktemp -d)"
     trap cleanup EXIT INT TERM
+    debug "diretorio temporario criado: $TEMP_DIR"
 }
 
 build_filename() {
     FILENAME="mgccli_${VERSION}_${SO}_${ARCH}.tar.gz"
+    debug "nome do arquivo: $FILENAME"
 }
 
 build_installer_url() {
     INSTALLER_URL="$DOWNLOAD_BASE_URL/v$VERSION/$FILENAME"
+    debug "url do instalador: $INSTALLER_URL"
 }
 
 build_checksum_url() {
     CHECKSUM_URL="$DOWNLOAD_BASE_URL/v$VERSION/mgccli_${VERSION}_checksums.txt"
+    debug "url do checksum: $CHECKSUM_URL"
 }
 
 # ======================
@@ -363,11 +384,13 @@ download_with_retry() {
 download_instalation_file() {
     INSTALLER_PATH="$TEMP_DIR/$FILENAME"
     download_with_retry "$INSTALLER_URL" "$INSTALLER_PATH" "Inatalador do MGC CLI"
+    debug "instalador salvo em: $INSTALLER_PATH"
 }
 
 download_checksum_file() {
     CHECKSUM_PATH="$TEMP_DIR/checksum.txt"
     download_with_retry "$CHECKSUM_URL" "$CHECKSUM_PATH" "Checksum do MGC CLI"
+    debug "checksum salvo em: $CHECKSUM_PATH"
 }
 
 # ======================
@@ -382,6 +405,7 @@ verify_checksum() {
     if [ "$actual" != "$expected" ]; then
         error "Checksum invalido para $FILENAME (esperado: $expected, obtido: $actual)"
     fi
+    debug "checksum valido para $FILENAME: $actual"
 }
 
 # ======================
@@ -395,6 +419,7 @@ install() {
     if ! tar -xzf "$INSTALLER_PATH" -C "$extract_dir"; then
         error "falha ao extrair $INSTALLER_PATH"
     fi
+    debug "arquivo extraido em: $extract_dir"
 
     bin_dir_existed=1
     [ -d "$BIN_DIR" ] || bin_dir_existed=0
@@ -440,7 +465,7 @@ add_export_in_terminal() {
     # Se estiver, retorna sucesso (0), indicando que os executáveis desse diretório
     # podem ser encontrados pelo Shell sem precisar informar o caminho completo.
     case ":$PATH:" in
-        *":$BIN_DIR:"*) return 0 ;;
+        *":$BIN_DIR:"*) debug "$BIN_DIR ja esta no PATH"; return 0 ;;
     esac
 
     [ -n "$TERMINAL" ] || { warn "Nao foi possivel detectar seu shell (suportado apenas bash e zsh); adicione manualmente ao PATH: export PATH=\"$BIN_DIR:\$PATH\""; return 0; }
