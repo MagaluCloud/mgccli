@@ -130,7 +130,7 @@ parse_args() {
 detect_os() {
     case "$(uname -s)" in
         Linux)   SO="linux" ;;
-        # Darwin)  SO="macos" ;;
+        Darwin)  SO="macos" ;;
         FreeBSD) SO="freebsd" ;;
         *) error "sistema operacional não suportado: $(uname -s). Baixe manualmente em ${GITHUB_RELEASES}" ;;
     esac
